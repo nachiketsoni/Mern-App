@@ -1,10 +1,10 @@
 import React from 'react'
-import Navigate from './components/Layout/Navigate'
-import LoginSignup from './components/Layout/User/LoginSignup'
+import { Route, Routes } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 const App = () => {
   return (
     <div>
-      <Navigate/> 
+      <h1>hello</h1>
     </div>
 
   )

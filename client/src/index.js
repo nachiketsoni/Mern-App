@@ -1,14 +1,17 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { Provider } from 'react-redux';
-import App from './App';
-
-import { store } from './components/Store/store';
-const root = ReactDOM.createRoot(document.getElementById('root'));
+import React from "react";
+import ReactDOM from "react-dom/client";
+import { Provider } from "react-redux";
+import App from "./App";
+import { BrowserRouter } from "react-router-dom";
+import  {store} from "./component/Store/User/store";
+import { ProSidebarProvider } from "react-pro-sidebar";
+const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(
-        <Provider store={store} >
-            <App />
-
-        </Provider>
+  <BrowserRouter>
+    <Provider store={store}>
+      <ProSidebarProvider>
+        <App />
+      </ProSidebarProvider>
+    </Provider>
+  </BrowserRouter>
 );
-
