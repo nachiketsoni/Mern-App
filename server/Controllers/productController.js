@@ -2,17 +2,32 @@ const ErrorHandler = require("../Utils/errorHandler.js");
 const catchAsyncError = require("../Middleware/catchAsyncError");
 const Product = require("../models/productModel");
 const ApiFeatures = require("../Utils/apiFeatures");
+const cloudinary = require("cloudinary");
+const formidable = require("formidable");
 
 // Create Product ---ADMIN
 exports.createProduct = catchAsyncError(async (req, res, next) => {
-  req.body.user = req.user.id;
-  const product = new Product(req.body);
-  await product.save();
-  res.status(200).json({
-    success: true,
-    message: "Product Created Successfully",
-    product,
-  });
+  const form = formidable();
+    
+  form.parse(req, async (err, fields, files) => {
+    
+    req.body.user = req.user.id;
+    var { public_id, secure_url } = await cloudinary.v2.uploader.upload(
+      files.image.filepath,
+      {
+        folder: `Myntra/${user.email}`,
+        fetch_format: "webp",
+        quality: "50",
+      }
+    );
+    const product = new Product({...fields, images:{url:secure_url,public_id} });
+    await product.save();
+    res.status(200).json({
+      success: true,
+      message: "Product Created Successfully",
+      product,
+    });
+  })
 });
 
 // Get All Products

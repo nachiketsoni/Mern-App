@@ -4,17 +4,30 @@ const User = require("../Models/userModel");
 const sendToken = require("../Utils/jwtToken");
 const sendEmail = require("../Utils/sendEmail.js");
 const crypto = require("crypto");
+const formidable = require("formidable");
+const cloudinary = require("cloudinary");
 const { isAuthenticatedUser } = require("../Middleware/auth.js");
 // Register a user
 exports.registerUser = catchAsyncError(async (req, res, next) => {
     const { name, email, password } = req.body;
+    const defaultIMG =
+    "https://img.freepik.com/free-psd/3d-illustration-person_23-2149436192.jpg?w=740&t=st=1665479565~exp=1665480165~hmac=a506127a19be062f341ab4d2e9767e3a1593d6e20efd3762ebfcb19cc39e49d1  ";
+ 
+    const { public_id, secure_url } = await cloudinary.v2.uploader.upload(
+    defaultIMG,
+    {
+      folder: `Myntra/${email}`,
+      fetch_format: "webp",
+      quality: "50",
+    }
+  );
     const user = new User({
         name,   
         email,
         password,
         avatar: {
-            public_id: "avatars/1",
-            url: "https://res.cloudinary.com/dxqjyqz8p/image/upload/v1620000000/avatars/1.png",
+            public_id: public_id,
+            url: secure_url,
         },
         
     }) 
@@ -158,23 +171,59 @@ exports.updatePassword = catchAsyncError(async (req, res, next) => {
 })
 
 exports.updateProfile = catchAsyncError(async (req, res, next) => {
-    const { name, email } = req.body;
-    const newUserData = {
-        name,
-        email
-    }
-    // Update avatar: TODO
-    const user = await User.findByIdAndUpdate(req.user._id, newUserData, {
-        new: true,
-        runValidators: true,
-        useFindAndModify: false,
-    });
-    res.status(200).json({
-        success: true,
-    });
-})
-
-exports.getAllUser = catchAsyncError(async (req, res, next) => {
+    try {
+        const form = formidable();
+    
+        form.parse(req, async (err, fields, files) => {
+          if (err) throw err;
+          console.log(fields, files);
+          if (!fields) {
+            return next(new ErrorHandler("Please Enter Name & Email", 400));
+          }
+          var updateUser = {
+            ...fields,
+          };
+    
+          if (files.avatar.size > 0 && files.avatar.mimetype.includes("image")) {
+            var user = await User.findById(req.user._id).exec();
+            var imageId = user.avatar.public_id;
+            try {
+              await cloudinary.v2.uploader.destroy(imageId);
+              var { public_id, secure_url } = await cloudinary.v2.uploader.upload(
+                files.avatar.filepath,
+                {
+                  folder: `myntra/${user.email}`,
+                  fetch_format: "webp",
+                  quality: "50",
+                }
+              );
+            } catch (error) {
+              console.log(error);
+            }
+    
+            updateUser.avatar = {
+              public_id: public_id,
+              url: secure_url,
+            };
+          } else {
+            console.log("no image");
+            // res.error(new ErrorHandler("Please Enter a Valid Image File", 400));
+          }
+    
+          await User.findByIdAndUpdate(
+            req.user._id,
+            { $set: updateUser },
+            { new: true }
+          );
+          res.status(200).json({success: true});
+        });
+      } catch (err) {
+        console.log(err);
+        res.error(new ErrorHandler("Error Uploading Data", 500));
+      }
+    })
+        
+        exports.getAllUser = catchAsyncError(async (req, res, next) => {
     const users = await User.find();
     if(!users) {
         return next(new ErrorHandler("No user found", 404));
